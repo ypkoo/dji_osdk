@@ -1,0 +1,24 @@
+http://wiki.ros.org/dji_sdk
+
+Required services:
+	Activation
+	DroneArmControl
+	DroneTaskControl
+	QueryDroneVersion
+	SDKControlAuthority
+	SetLocalPosRef
+
+Topics to subscribe:
+	rc // currently not using
+	attitude
+	battery_state
+	flight_status // Refer to dji_sdk.h for different enums for M100 and A3/N3
+	gps_health
+	gps_position
+	velocity
+	local_position
+
+Topics to publish:
+	flight_control_setpoint_generic
+	flight_control_setpoint_ENUposition_yaw
+	flight_control_setpoint_ENUvelocity_yawrate
