@@ -2,19 +2,30 @@
 #encoding = utf-8
 
 import rospy
-import actionlib
 import roslib
-import dji_sdk.msg
-import dji_sdk.srv
 
 from sensor_msgs.msg import Joy, BatteryState, NavSatFix
 from geomerty_msgs.msg import QuaternionStamped, Vector3Stamped, PointStamped
 from std_msgs.msg import UInt8
 from dji_sdk.msg import *
-import nav_msgs.msg
 from dji_sdk.srv import *
 
 class Drone(object):
+
+	def __init__(self):
+		rospy.init_node('dji_sdk_ros_python')
+
+		self.attitude = QuaternionStamped()
+		self.flight_status = Uint8()
+		self.battery_state = BatteryState()
+		self.velocity = Vector3Stamped()
+		self.gps_health = Uint8()
+		self.gps_position = NavSatFix()
+		self.local_position = PointStamped()
+
+		self.init_services()
+		self.init_subscribers()
+		self.init_publishers()
 
 	def init_services(self):
 		rospy.wait_for_service("dji_sdk/activation")
@@ -25,11 +36,11 @@ class Drone(object):
 		rospy.wait_for_service("dji_sdk/set_local_pos_ref")
 
 		self.activationService = rospy.ServiceProxy("dji_sdk/activation", Activation)
-		self.droneArmControl = rospy.ServiceProxy("dji_sdk/drone_arm_control", DroneArmControl)
-		self.droneTaskControl = rospy.ServiceProxy("dji_sdk/drone_task_control", DroneTaskControl)
-		self.queryDroneVersion = rospy.ServiceProxy("dji_sdk/query_drone_version", QueryDroneVersion)
-		self.sdkControlAuthority = rospy.ServiceProxy("dji_sdk/sdk_control_authority", SDKControlAuthority)
-		self.setLocalPosRef = rospy.ServiceProxy("dji_sdk/set_local_pos_ref", SetLocalPosRef)
+		self.droneArmControlService = rospy.ServiceProxy("dji_sdk/drone_arm_control", DroneArmControl)
+		self.droneTaskControlService = rospy.ServiceProxy("dji_sdk/drone_task_control", DroneTaskControl)
+		self.queryDroneVersionService = rospy.ServiceProxy("dji_sdk/query_drone_version", QueryDroneVersion)
+		self.sdkControlAuthorityService = rospy.ServiceProxy("dji_sdk/sdk_control_authority", SDKControlAuthority)
+		self.setLocalPosRefService = rospy.ServiceProxy("dji_sdk/set_local_pos_ref", SetLocalPosRef)
 
 	def init_subscribers(self):
 		rospy.Subscriber("dji_sdk/flight_status", UInt8, self.flight_status_callback)
@@ -45,23 +56,63 @@ class Drone(object):
 		self.flightCtrlPosPublisher = rospy.Publisher("dji_sdk/flight_control_setpoint_ENUposition_yaw", Joy)
 		self.flightCtrlVelPublisher = rospy.Publisher("dji_sdk/flight_control_setpoint_ENUvelocity_yawrate", Joy)
 
-	def flight_status_callback(self):
-		pass
+	def activate(self):
+		result = self.activationService()
+		return result.result
 
-	def attitude_callback(self):
-		pass
+	def drone_version(self):
+		result = self.queryDroneVersionService()
+		return result.result
 
-	def battery_state_callback(self):
-		pass
+	def arm(self):
+		result = self.droneArmControlService(arm=1)
+		return result.result
 
-	def velocity_callback(self):
-		pass
+	def disarm(self):
+		result = self.droneArmControlService(arm=0)
+		return result.result
 
-	def gps_health_callback(self):
-		pass
+	def takeoff(self):
+		result = self.droneTaskControlService(task=TASK_TAKEOFF)
+		return result.result
 
-	def gps_position_callback(self):
-		pass
+	def land(self):
+		result = self.droneTaskControlService(task=TASK_LAND)
+		return result.result
 
-	def local_position_callback(self):
-		pass
+	def gohome(self):
+		result = self.droneTaskControlService(task=TASK_GOHOME)
+		return result.result
+
+	def request_sdk_control(self):
+		result = self.sdkControlAuthorityService(control_enbale=REQUEST_CONTROL)
+		return result.result
+
+	def release_sdk_control(self):
+		result = self.sdkControlAuthorityService(control_enable=RELEASE_CONTROL)
+		return result.result
+
+	def set_local_position_reference(self):
+		result = self.setLocalPosRefService()
+		return result.result
+
+	def flight_status_callback(self, flight_status):
+		self.flight_status = flight_status
+
+	def attitude_callback(self, attitude):
+		self.attitude = attitue
+
+	def battery_state_callback(self, battery_state):
+		self.battery_state = battery_state
+
+	def velocity_callback(self, velocity):
+		self.velocity = velocity
+
+	def gps_health_callback(self, gps_health):
+		self.gps_health = gps_health
+
+	def gps_position_callback(self, gps_position):
+		self.gps_position = gps_position
+
+	def local_position_callback(self, local_position):
+		self.local_position = local_position
