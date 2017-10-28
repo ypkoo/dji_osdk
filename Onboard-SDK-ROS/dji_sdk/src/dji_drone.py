@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 #encoding = utf-8
 
+"""
+	A Python-based ROS node to interact with DJI OSDK ROS ver3.3
+"""
+
 import rospy
 import roslib
 
@@ -95,6 +99,26 @@ class Drone(object):
 	def set_local_position_reference(self):
 		result = self.setLocalPosRefService()
 		return result.result
+
+	def flight_control_generic(self):
+		pass
+
+	def flight_control_velocity(self, x_vel, y_vel, z_vel):
+		msg = Joy()
+		msg.axes[0] = x_vel
+		msg.axes[1] = y_vel
+		msg.axes[2] = z_vel
+
+		self.flightCtrlVelPublisher.publish(msg)
+
+	def flight_control_position(self, x_offset, y_offset, z, yaw):
+		msg = Joy()
+		msg.axes[0] = x_offset
+		msg.axes[1] = y_offset
+		msg.axes[2] = z
+		msg.axes[3] = yaw
+
+		self.flightCtrlPosPublisher.publish(msg)
 
 	def flight_status_callback(self, flight_status):
 		self.flight_status = flight_status
