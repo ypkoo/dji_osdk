@@ -60,6 +60,7 @@ class Drone(object):
 		self.flightCtrlPosPublisher = rospy.Publisher("dji_sdk/flight_control_setpoint_ENUposition_yaw", Joy)
 		self.flightCtrlVelPublisher = rospy.Publisher("dji_sdk/flight_control_setpoint_ENUvelocity_yawrate", Joy)
 
+	""" Service functions """
 	def activate(self):
 		result = self.activationService()
 		return result.result
@@ -100,6 +101,7 @@ class Drone(object):
 		result = self.setLocalPosRefService()
 		return result.result
 
+	""" Flight control functions """
 	def flight_control_generic(self):
 		pass
 
@@ -120,6 +122,8 @@ class Drone(object):
 
 		self.flightCtrlPosPublisher.publish(msg)
 
+
+	""" Subscriber's callbacks """
 	def flight_status_callback(self, flight_status):
 		self.flight_status = flight_status
 
