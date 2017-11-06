@@ -8,8 +8,10 @@
 import rospy
 import roslib
 
+import time
+
 from sensor_msgs.msg import Joy, BatteryState, NavSatFix
-from geomerty_msgs.msg import QuaternionStamped, Vector3Stamped, PointStamped
+from geometry_msgs.msg import QuaternionStamped, Vector3Stamped, PointStamped
 from std_msgs.msg import UInt8
 from dji_sdk.msg import *
 from dji_sdk.srv import *
@@ -20,10 +22,10 @@ class Drone(object):
 		rospy.init_node('dji_sdk_ros_python')
 
 		self.attitude = QuaternionStamped()
-		self.flight_status = Uint8()
+		self.flight_status = UInt8()
 		self.battery_state = BatteryState()
 		self.velocity = Vector3Stamped()
-		self.gps_health = Uint8()
+		self.gps_health = UInt8()
 		self.gps_position = NavSatFix()
 		self.local_position = PointStamped()
 
@@ -35,16 +37,16 @@ class Drone(object):
 		rospy.wait_for_service("dji_sdk/activation")
 		rospy.wait_for_service("dji_sdk/drone_arm_control")
 		rospy.wait_for_service("dji_sdk/drone_task_control")
-		rospy.wait_for_service("dji_sdk/query_drone_version")
+		#rospy.wait_for_service("dji_sdk/query_drone_version")
 		rospy.wait_for_service("dji_sdk/sdk_control_authority")
-		rospy.wait_for_service("dji_sdk/set_local_pos_ref")
+		#rospy.wait_for_service("dji_sdk/set_local_pos_ref")
 
 		self.activationService = rospy.ServiceProxy("dji_sdk/activation", Activation)
 		self.droneArmControlService = rospy.ServiceProxy("dji_sdk/drone_arm_control", DroneArmControl)
 		self.droneTaskControlService = rospy.ServiceProxy("dji_sdk/drone_task_control", DroneTaskControl)
-		self.queryDroneVersionService = rospy.ServiceProxy("dji_sdk/query_drone_version", QueryDroneVersion)
+		#self.queryDroneVersionService = rospy.ServiceProxy("dji_sdk/query_drone_version", QueryDroneVersion)
 		self.sdkControlAuthorityService = rospy.ServiceProxy("dji_sdk/sdk_control_authority", SDKControlAuthority)
-		self.setLocalPosRefService = rospy.ServiceProxy("dji_sdk/set_local_pos_ref", SetLocalPosRef)
+		#self.setLocalPosRefService = rospy.ServiceProxy("dji_sdk/set_local_pos_ref", SetLocalPosRef)
 
 	def init_subscribers(self):
 		rospy.Subscriber("dji_sdk/flight_status", UInt8, self.flight_status_callback)
@@ -56,9 +58,9 @@ class Drone(object):
 		rospy.Subscriber("dji_sdk/local_position", PointStamped, self.local_position_callback)
 
 	def init_publishers(self):
-		self.flightCtrlGenericPublisher = rospy.Publisher("dji_sdk/flight_control_setpoint_generic", Joy)
-		self.flightCtrlPosPublisher = rospy.Publisher("dji_sdk/flight_control_setpoint_ENUposition_yaw", Joy)
-		self.flightCtrlVelPublisher = rospy.Publisher("dji_sdk/flight_control_setpoint_ENUvelocity_yawrate", Joy)
+		self.flightCtrlGenericPublisher = rospy.Publisher("dji_sdk/flight_control_setpoint_generic", Joy, queue_size=10)
+		self.flightCtrlPosPublisher = rospy.Publisher("dji_sdk/flight_control_setpoint_ENUposition_yaw", Joy, queue_size=10)
+		self.flightCtrlVelPublisher = rospy.Publisher("dji_sdk/flight_control_setpoint_ENUvelocity_yawrate", Joy, queue_size=10)
 
 	""" Service functions """
 	def activate(self):
@@ -70,31 +72,31 @@ class Drone(object):
 		return result.result
 
 	def arm(self):
-		result = self.droneArmControlService(arm=1)
+		result = self.droneArmControlService(arm=DroneArmControlRequest.ARM_COMMAND)
 		return result.result
 
 	def disarm(self):
-		result = self.droneArmControlService(arm=0)
+		result = self.droneArmControlService(arm=DroneArmControlRequest.DISARM_COMMAND)
 		return result.result
 
 	def takeoff(self):
-		result = self.droneTaskControlService(task=TASK_TAKEOFF)
+		result = self.droneTaskControlService(task=DroneTaskControlRequest.TASK_TAKEOFF)
 		return result.result
 
 	def land(self):
-		result = self.droneTaskControlService(task=TASK_LAND)
+		result = self.droneTaskControlService(task=DroneTaskControlRequest.TASK_LAND)
 		return result.result
 
 	def gohome(self):
-		result = self.droneTaskControlService(task=TASK_GOHOME)
+		result = self.droneTaskControlService(task=DroneTaskControlRequest.TASK_GOHOME)
 		return result.result
 
 	def request_sdk_control(self):
-		result = self.sdkControlAuthorityService(control_enbale=REQUEST_CONTROL)
+		result = self.sdkControlAuthorityService(control_enable=SDKControlAuthorityRequest.REQUEST_CONTROL)
 		return result.result
 
 	def release_sdk_control(self):
-		result = self.sdkControlAuthorityService(control_enable=RELEASE_CONTROL)
+		result = self.sdkControlAuthorityService(control_enable=SDKControlAuthorityRequest.RELEASE_CONTROL)
 		return result.result
 
 	def set_local_position_reference(self):
@@ -107,18 +109,19 @@ class Drone(object):
 
 	def flight_control_velocity(self, x_vel, y_vel, z_vel):
 		msg = Joy()
-		msg.axes[0] = x_vel
-		msg.axes[1] = y_vel
-		msg.axes[2] = z_vel
+		print len(msg.axes)
+		msg.axes.append(x_vel)
+		msg.axes.append(y_vel)
+		msg.axes.append(z_vel)
 
 		self.flightCtrlVelPublisher.publish(msg)
 
 	def flight_control_position(self, x_offset, y_offset, z, yaw):
 		msg = Joy()
-		msg.axes[0] = x_offset
-		msg.axes[1] = y_offset
-		msg.axes[2] = z
-		msg.axes[3] = yaw
+		msg.axes.append(x_offset)
+		msg.axes.append(y_offset)
+		msg.axes.append(z)
+		msg.axes.append(yaw)
 
 		self.flightCtrlPosPublisher.publish(msg)
 
@@ -128,10 +131,11 @@ class Drone(object):
 		self.flight_status = flight_status
 
 	def attitude_callback(self, attitude):
-		self.attitude = attitue
+		self.attitude = attitude
 
 	def battery_state_callback(self, battery_state):
 		self.battery_state = battery_state
+		print self.battery_state
 
 	def velocity_callback(self, velocity):
 		self.velocity = velocity
@@ -144,3 +148,14 @@ class Drone(object):
 
 	def local_position_callback(self, local_position):
 		self.local_position = local_position
+
+if __name__ == "__main__":
+	drone = Drone();
+	result = drone.request_sdk_control()
+	print result
+
+	#drone.arm()
+	drone.takeoff()
+	time.sleep(10)
+	drone.flight_control_velocity(30,30,30)
+
